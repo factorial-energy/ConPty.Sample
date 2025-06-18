@@ -3,6 +3,7 @@ using System.Buffers;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using ConPty.Sample.ConsoleApi;
@@ -11,9 +12,13 @@ namespace ConPty.Sample.Terminal.Forms
 {
     public partial class TerminalForm : Form
     {
-        //private NativeConsole console;
         private ConsoleApi.Terminal terminal;
-        private bool terminalIsExiting;
+
+        private CancellationTokenSource copyConsoleCts;
+        private Task copyConsoleTask;
+
+        private WaitHandle terminalWaitHandle;
+        private Task terminalWaitTask;
 
         public TerminalForm()
         {
@@ -26,11 +31,30 @@ namespace ConPty.Sample.Terminal.Forms
             //console = new NativeConsole(false);
             terminal = new ConsoleApi.Terminal();
             terminal.Start(@"ping localhost", 126, 32);
+            terminalWaitHandle = terminal.BuildWaitHandler();
 
-            _ = Task.Run(CopyConsoleToWindow);
+            copyConsoleCts = new CancellationTokenSource();
+            copyConsoleTask = Task.Run(() => CopyConsoleToWindow(copyConsoleCts.Token), copyConsoleCts.Token);
+
+            // Start the terminal wait task
+            terminalWaitTask = Task.Run(() => WaitForTerminalExit(), CancellationToken.None);
         }
 
-        private void CopyConsoleToWindow()
+        private void WaitForTerminalExit()
+        {
+            // Wait for the terminal process to exit
+            terminalWaitHandle.WaitOne();
+
+            Task.Delay(1000).Wait();
+
+            // Cancel the CopyConsoleToWindow task
+            copyConsoleCts?.Cancel();
+
+            // Display a message in the output window
+            OutputCharacters("Terminal process exited." + Environment.NewLine.ToCharArray(), "Terminal process exited.".Length + Environment.NewLine.Length);
+        }
+
+        private void CopyConsoleToWindow(CancellationToken cancellationToken)
         {
             var buffer = ArrayPool<char>.Shared.Rent(1024);
 
@@ -41,23 +65,37 @@ namespace ConPty.Sample.Terminal.Forms
                 {
                     while (true)
                     {
+                        // Check for cancellation
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            terminal.KillConsole();
+                            return;
+                        }
+
                         int readed = reader.Read(buffer, 0, buffer.Length);
 
                         if (readed == 0)
                         {
-                            return;
+                            // No more data to read, wait for a while before checking again
+                            Task.Delay(100, cancellationToken).Wait(cancellationToken);
+                            continue;
                         }
-
-                        fileWriter.Write(buffer, 0, readed);
-                        OutputCharacters(buffer, readed);
+                        else
+                        {
+                            fileWriter.Write(buffer, 0, readed);
+                            OutputCharacters(buffer, readed, cancellationToken);
+                        }
                     }
                 }
             }
-            catch (ObjectDisposedException) { /* Pseudo terminal is terminated. */ }
+            catch (ObjectDisposedException)
+            {
+                /* Pseudo terminal is terminated. */
+            }
             catch (Exception exception)
             {
                 string message = Environment.NewLine + "Error: " + exception.Message;
-                OutputCharacters(message.ToCharArray(), message.Length);
+                OutputCharacters(message.ToCharArray(), message.Length, cancellationToken);
             }
             finally
             {
@@ -67,27 +105,53 @@ namespace ConPty.Sample.Terminal.Forms
 
         protected override void OnClosing(CancelEventArgs e)
         {
-            terminalIsExiting = true;
+            // Signal cancellation and wait for the tasks to finish
+            if (copyConsoleCts != null)
+            {
+                copyConsoleCts.Cancel();
+                try
+                {
+                    copyConsoleTask?.Wait(1000); // Wait up to 1 second for task to finish
+                    terminalWaitTask?.Wait(1000);
+                }
+                catch (AggregateException) { /* Ignore cancellation exceptions */ }
+                copyConsoleCts.Dispose();
+            }
+
             terminal?.Dispose();
             //console?.Dispose();
         }
 
-        private void OutputCharacters(char[] buffer, int length)
+        private void OutputCharacters(char[] buffer, int length, CancellationToken cancellationToken)
         {
-            if (terminalIsExiting)
+            if (cancellationToken.IsCancellationRequested)
             {
                 return;
             }
 
-            string text = new string(buffer.Take(length).ToArray());
+            string text = new(buffer.Take(length).ToArray());
+            text = Ecma48Stripper.Strip(text);
 
-            if (CheckForIllegalCrossThreadCalls)
+            if (InvokeRequired)
             {
                 Invoke(new Action(() => { tbOutput.Text += text; }));
             }
             else
             {
                 tbOutput.Text += text;
+            }
+        }
+
+        // Overload OutputCharacters for string input for convenience
+        private void OutputCharacters(string text, int length)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => { tbOutput.Text += text.Substring(0, length); }));
+            }
+            else
+            {
+                tbOutput.Text += text.Substring(0, length);
             }
         }
     }
