@@ -1,19 +1,20 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Text;
 using ConPty.Sample.ConsoleApi.Interop.Definitions;
 
 namespace ConPty.Sample.ConsoleApi.Interop
 {
     internal static class ProcessFactory
     {
-        public static Process Start(string command, IntPtr attributes, IntPtr hPC)
+        public static Process Start(string commandLine, string workingDirectory, IntPtr attributes, IntPtr hPC)
         {
             var startupInfo = ConfigureProcessThread(hPC, attributes);
-            var processInfo = RunProcess(ref startupInfo, command);
+            var processInfo = RunProcess(ref startupInfo, commandLine, workingDirectory, IntPtr.Zero);
             return new Process(startupInfo, processInfo);
         }
 
-        private static StartInfoExtended ConfigureProcessThread(IntPtr hPC, IntPtr attributes)
+        private static StartInfoExtended ConfigureProcessThread(IntPtr hPC, IntPtr attributes = PseudoConsole.PseudoConsoleThreadAttribute)
         {
             // this method implements the behavior described in https://docs.microsoft.com/en-us/windows/console/creating-a-pseudoconsole-session#preparing-for-creation-of-the-child-process
 
@@ -64,7 +65,7 @@ namespace ConPty.Sample.ConsoleApi.Interop
             return startupInfo;
         }
 
-        private static ProcessInfo RunProcess(ref StartInfoExtended sInfoEx, string commandLine)
+        private static ProcessInfo RunProcess(ref StartInfoExtended sInfoEx, string commandLine, string workingDirectory, IntPtr environmentPtr)
         {
             int securityAttributeSize = Marshal.SizeOf<SecurityAttributes>();
             var pSec = new SecurityAttributes { nLength = securityAttributeSize };
@@ -76,8 +77,8 @@ namespace ConPty.Sample.ConsoleApi.Interop
                 lpThreadAttributes: ref tSec,
                 bInheritHandles: false,
                 dwCreationFlags: Constants.EXTENDED_STARTUPINFO_PRESENT,
-                lpEnvironment: IntPtr.Zero,
-                lpCurrentDirectory: null,
+                lpEnvironment: environmentPtr,
+                lpCurrentDirectory: string.IsNullOrWhiteSpace(workingDirectory) ? null : workingDirectory,
                 lpStartupInfo: ref sInfoEx,
                 lpProcessInformation: out ProcessInfo pInfo
             );
@@ -88,6 +89,25 @@ namespace ConPty.Sample.ConsoleApi.Interop
             }
 
             return pInfo;
+        }
+
+    }
+
+    // Helper for environment block creation
+    internal static class EnvironmentBlockHelper
+    {
+        public static IntPtr CreateEnvironmentBlock(System.Collections.Specialized.StringDictionary envVars)
+        {
+            var builder = new StringBuilder();
+            foreach (System.Collections.DictionaryEntry entry in envVars)
+            {
+                builder.Append($"{entry.Key}={entry.Value}\0");
+            }
+            builder.Append('\0');
+            var bytes = Encoding.Unicode.GetBytes(builder.ToString() + 2); // double null-terminated
+            IntPtr envBlock = Marshal.AllocHGlobal(bytes.Length);
+            Marshal.Copy(bytes, 0, envBlock, bytes.Length);
+            return envBlock;
         }
     }
 }

@@ -39,7 +39,7 @@ namespace ConPty.Sample.ConsoleApi
             output = new Pipe();
 
             console = PseudoConsole.Create(input.Read, output.Write, consoleWidth, consoleHeight);
-            process = ProcessFactory.Start(shellCommand, PseudoConsole.PseudoConsoleThreadAttribute, console.Handle);
+            process = ProcessFactory.Start(shellCommand, string.Empty, PseudoConsole.PseudoConsoleThreadAttribute, console.Handle);
 
             Input = new FileStream(input.Write, FileAccess.Write);
             Output = new FileStream(output.Read, FileAccess.Read);

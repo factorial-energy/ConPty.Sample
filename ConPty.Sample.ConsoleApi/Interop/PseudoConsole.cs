@@ -6,7 +6,7 @@ namespace ConPty.Sample.ConsoleApi.Interop
 {
     internal class PseudoConsole : IDisposable
     {
-        public static readonly IntPtr PseudoConsoleThreadAttribute
+        public const IntPtr PseudoConsoleThreadAttribute
             = (IntPtr)Constants.PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE;
 
         private PseudoConsole(IntPtr handle)
@@ -36,8 +36,10 @@ namespace ConPty.Sample.ConsoleApi.Interop
         {
             int createResult = ConPtyApi.CreatePseudoConsole(
                 new Coordinates { X = width, Y = height },
-                inputReadSide, outputWriteSide,
-                0, out IntPtr hPC);
+                inputReadSide,
+                outputWriteSide,
+                dwFlags: 0,
+                out IntPtr hPC);
 
             if (createResult != 0)
             {

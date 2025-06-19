@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -51,7 +52,8 @@ namespace ConPty.Sample.Terminal.Forms
             copyConsoleCts?.Cancel();
 
             // Display a message in the output window
-            OutputCharacters("Terminal process exited." + Environment.NewLine.ToCharArray(), "Terminal process exited.".Length + Environment.NewLine.Length);
+            string exitMessage = Environment.NewLine + "Terminal process exited." + Environment.NewLine;
+            OutputCharacters(exitMessage, exitMessage.Length);
         }
 
         private void CopyConsoleToWindow(CancellationToken cancellationToken)
