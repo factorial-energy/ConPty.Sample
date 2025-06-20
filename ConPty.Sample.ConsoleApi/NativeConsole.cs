@@ -7,9 +7,9 @@ namespace ConPty.Sample.ConsoleApi
 {
     public class NativeConsole : IDisposable
     {
-        private IntPtr handle;
-        private bool isDisposed;
-        private Pipe stdOut, stdErr, stdIn;
+        private IntPtr handle = IntPtr.Zero;
+        private bool isDisposed = false;
+        private Pipe? stdOut = null, stdErr = null, stdIn = null;
 
         public NativeConsole(bool hidden = true)
         {
@@ -21,11 +21,11 @@ namespace ConPty.Sample.ConsoleApi
             Dispose(false);
         }
 
-        public FileStream Output { get; private set; }
+        public FileStream? Output { get; private set; } = null;
 
-        public FileStream Error { get; private set; }
+        public FileStream? Error { get; private set; } = null;
 
-        public FileStream Input { get; private set; }
+        public FileStream? Input { get; private set; } = null;
 
         public static void SendCtrlEvent(CtrlEvent ctrlEvent)
         {
@@ -67,9 +67,9 @@ namespace ConPty.Sample.ConsoleApi
 
             if (disposing)
             {
-                Input.Dispose();
-                Output.Dispose();
-                Error.Dispose();
+                Input?.Dispose();
+                Output?.Dispose();
+                Error?.Dispose();
             }
 
             Interop.ConsoleApi.FreeConsole();
@@ -78,9 +78,9 @@ namespace ConPty.Sample.ConsoleApi
 
         private void ReleaseUnmanagedResources()
         {
-            stdIn.Dispose();
-            stdOut.Dispose();
-            stdErr.Dispose();
+            stdIn?.Dispose();
+            stdOut?.Dispose();
+            stdErr?.Dispose();
         }
 
         private void Initialise(bool hidden)

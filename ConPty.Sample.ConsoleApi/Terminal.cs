@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using ConPty.Sample.ConsoleApi.Interop;
 using Microsoft.Win32.SafeHandles;
@@ -8,11 +10,11 @@ namespace ConPty.Sample.ConsoleApi
 {
     public class Terminal : IDisposable
     {
-        private Pipe input;
-        private Pipe output;
-        private PseudoConsole console;
-        private Process process;
-        private bool disposed;
+        private Pipe? input = null;
+        private Pipe? output = null;
+        private PseudoConsole? console = null;
+        private Process? process = null;
+        private bool disposed = false;
 
         public Terminal()
         {
@@ -29,17 +31,41 @@ namespace ConPty.Sample.ConsoleApi
             Dispose(false);
         }
 
-        public FileStream Input { get; private set; }
+        public FileStream? Input { get; private set; } = null;
 
-        public FileStream Output { get; private set; }
+        public FileStream? Output { get; private set; } = null;
 
-        public void Start(string shellCommand, short consoleWidth, short consoleHeight)
+        /// <summary>
+        /// Launches a new process using the Windows CreateProcess API.
+        /// </summary>
+        /// <param name="applicationName">
+        /// Optional full path to the executable. If provided, must be a valid path; 
+        /// the system will not search the PATH environment variable.
+        /// </param>
+        /// <param name="commandLine">
+        /// Required command line string. Must begin with the executable name (argv[0]), 
+        /// regardless of whether <paramref name="applicationName"/> is specified.
+        /// </param>
+        /// <remarks>
+        /// For parameter behavior and security considerations, see:
+        /// https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessa#parameters
+        /// </remarks>
+        public void Start(string applicationName, string commandLine, string workingDirectory, IEnumerable<KeyValuePair<string, string>> additionalEnvironmentVariables, short consoleWidth, short consoleHeight)
         {
             input = new Pipe();
             output = new Pipe();
 
             console = PseudoConsole.Create(input.Read, output.Write, consoleWidth, consoleHeight);
-            process = ProcessFactory.Start(shellCommand, PseudoConsole.PseudoConsoleThreadAttribute, console.Handle);
+
+            if (additionalEnvironmentVariables == null || !additionalEnvironmentVariables.Any())
+            {
+                process = ProcessFactory.Start(applicationName, commandLine, workingDirectory, null, PseudoConsole.PseudoConsoleThreadAttribute, console.Handle);
+            }
+            else
+            {
+                var environmentVariables = ProcessFactory.MergeAdditionalEnvironmentVariables(additionalEnvironmentVariables);
+                process = ProcessFactory.Start(applicationName, commandLine, workingDirectory, environmentVariables, PseudoConsole.PseudoConsoleThreadAttribute, console.Handle);
+            }
 
             Input = new FileStream(input.Write, FileAccess.Write);
             Output = new FileStream(output.Read, FileAccess.Read);
@@ -58,6 +84,10 @@ namespace ConPty.Sample.ConsoleApi
 
         public WaitHandle BuildWaitHandler()
         {
+            if (process == null)
+            {
+                throw new InvalidOperationException("Process has not been started.");
+            }
             return new AutoResetEvent(false)
             {
                 SafeWaitHandle = new SafeWaitHandle(process.ProcessInfo.hProcess, ownsHandle: false)
@@ -67,6 +97,21 @@ namespace ConPty.Sample.ConsoleApi
         public void WaitToExit()
         {
             BuildWaitHandler().WaitOne(Timeout.Infinite);
+        }
+
+        public uint GetExitCode()
+        {
+            if (process == null)
+            {
+                throw new InvalidOperationException("Process has not been started.");
+            }
+
+            if (!ProcessApi.GetExitCodeProcess(process.ProcessInfo.hProcess, out uint exitCode))
+            {
+                throw InteropException.CreateWithInnerHResultException("Could not get exit code of the process.");
+            }
+
+            return exitCode;
         }
 
         protected virtual void Dispose(bool disposing)

@@ -28,14 +28,14 @@ namespace ConPty.Sample.ConsoleApi.Interop
         [DllImport("kernel32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool CreateProcess(
-            string lpApplicationName,
-            string lpCommandLine,
+            string? lpApplicationName,
+            string? lpCommandLine,
             ref SecurityAttributes lpProcessAttributes,
             ref SecurityAttributes lpThreadAttributes,
             bool bInheritHandles,
             uint dwCreationFlags,
             IntPtr lpEnvironment,
-            string lpCurrentDirectory,
+            string? lpCurrentDirectory,
             [In] ref StartInfoExtended lpStartupInfo,
             out ProcessInfo lpProcessInformation);
 
@@ -44,6 +44,11 @@ namespace ConPty.Sample.ConsoleApi.Interop
         public static extern bool DeleteProcThreadAttributeList(IntPtr lpAttributeList);
 
         [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool GetExitCodeProcess(IntPtr hProcess, out uint lpExitCode);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool CloseHandle(IntPtr hObject);
     }
 }

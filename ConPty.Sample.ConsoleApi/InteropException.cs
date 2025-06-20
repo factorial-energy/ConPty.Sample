@@ -12,11 +12,8 @@ namespace ConPty.Sample.ConsoleApi
         public InteropException(string message)
             : base(message) { }
 
-        public InteropException(string message, Exception innerException)
+        public InteropException(string message, Exception? innerException)
             : base(message, innerException) { }
-
-        protected InteropException(SerializationInfo serializationInfo, StreamingContext streamingContext)
-              : base(serializationInfo, streamingContext) { }
 
         public static InteropException CreateWithInnerHResultException(string message)
         {
