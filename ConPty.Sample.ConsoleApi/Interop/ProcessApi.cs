@@ -44,6 +44,11 @@ namespace ConPty.Sample.ConsoleApi.Interop
         public static extern bool DeleteProcThreadAttributeList(IntPtr lpAttributeList);
 
         [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool GetExitCodeProcess(IntPtr hProcess, out uint lpExitCode);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool CloseHandle(IntPtr hObject);
     }
 }

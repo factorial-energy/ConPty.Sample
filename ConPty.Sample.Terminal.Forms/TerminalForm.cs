@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -7,7 +8,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using ConPty.Sample.ConsoleApi;
 
 namespace ConPty.Sample.Terminal.Forms
 {
@@ -29,9 +29,12 @@ namespace ConPty.Sample.Terminal.Forms
 
         private void InitialiseTerminal()
         {
-            //console = new NativeConsole(false);
             terminal = new ConsoleApi.Terminal();
-            terminal.Start(@"ping localhost", 126, 32);
+            var additionalEnvironmentVariables = new Dictionary<string, string>
+            {
+                { "TEST_VAR", "abcdefg1234567" },
+            };
+            terminal.Start(@"", "powershell -Command \"Get-ChildItem Env:\"", @"C:\", additionalEnvironmentVariables, 126, 32);
             terminalWaitHandle = terminal.BuildWaitHandler();
 
             copyConsoleCts = new CancellationTokenSource();
@@ -46,13 +49,14 @@ namespace ConPty.Sample.Terminal.Forms
             // Wait for the terminal process to exit
             terminalWaitHandle.WaitOne();
 
-            Task.Delay(1000).Wait();
-
             // Cancel the CopyConsoleToWindow task
             copyConsoleCts?.Cancel();
 
+            // Get the exit code of the terminal process
+            var exitCode = terminal.GetExitCode();
+
             // Display a message in the output window
-            string exitMessage = Environment.NewLine + "Terminal process exited." + Environment.NewLine;
+            string exitMessage = Environment.NewLine + $"Terminal process exited with exit code ({exitCode})." + Environment.NewLine;
             OutputCharacters(exitMessage, exitMessage.Length);
         }
 
