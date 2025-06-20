@@ -28,14 +28,14 @@ namespace ConPty.Sample.ConsoleApi.Interop
         [DllImport("kernel32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool CreateProcess(
-            string lpApplicationName,
-            string lpCommandLine,
+            string? lpApplicationName,
+            string? lpCommandLine,
             ref SecurityAttributes lpProcessAttributes,
             ref SecurityAttributes lpThreadAttributes,
             bool bInheritHandles,
             uint dwCreationFlags,
             IntPtr lpEnvironment,
-            string lpCurrentDirectory,
+            string? lpCurrentDirectory,
             [In] ref StartInfoExtended lpStartupInfo,
             out ProcessInfo lpProcessInformation);
 

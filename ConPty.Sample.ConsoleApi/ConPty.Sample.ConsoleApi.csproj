@@ -2,6 +2,22 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>12.0</LangVersion>
+
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableSecurityChecks>true</EnableSecurityChecks>
+
+    <AssemblyName>ConPty.Sample.ConsoleApi</AssemblyName>
+    <RootNamespace>ConPty.Sample.ConsoleApi</RootNamespace>
   </PropertyGroup>
 
 </Project>

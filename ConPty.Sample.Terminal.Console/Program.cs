@@ -12,7 +12,7 @@ namespace ConPty.Sample.Terminal.Console
             {
                 using (var terminal = new ConsoleApi.Terminal())
                 {
-                    terminal.Start(@"ping localhost", 126, 32);
+                    terminal.Start("", @"ping localhost", "", null, 126, 32);
                     _ = Task.Run(() => CopyPipeToOutput(terminal.Output));
                     terminal.WaitToExit();
                 }

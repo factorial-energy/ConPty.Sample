@@ -10,11 +10,11 @@ namespace ConPty.Sample.ConsoleApi
 {
     public class Terminal : IDisposable
     {
-        private Pipe input;
-        private Pipe output;
-        private PseudoConsole console;
-        private Process process;
-        private bool disposed;
+        private Pipe? input = null;
+        private Pipe? output = null;
+        private PseudoConsole? console = null;
+        private Process? process = null;
+        private bool disposed = false;
 
         public Terminal()
         {
@@ -31,9 +31,9 @@ namespace ConPty.Sample.ConsoleApi
             Dispose(false);
         }
 
-        public FileStream Input { get; private set; }
+        public FileStream? Input { get; private set; } = null;
 
-        public FileStream Output { get; private set; }
+        public FileStream? Output { get; private set; } = null;
 
         /// <summary>
         /// Launches a new process using the Windows CreateProcess API.
@@ -84,6 +84,10 @@ namespace ConPty.Sample.ConsoleApi
 
         public WaitHandle BuildWaitHandler()
         {
+            if (process == null)
+            {
+                throw new InvalidOperationException("Process has not been started.");
+            }
             return new AutoResetEvent(false)
             {
                 SafeWaitHandle = new SafeWaitHandle(process.ProcessInfo.hProcess, ownsHandle: false)

@@ -12,7 +12,7 @@ namespace ConPty.Sample.ConsoleApi
         public InteropException(string message)
             : base(message) { }
 
-        public InteropException(string message, Exception innerException)
+        public InteropException(string message, Exception? innerException)
             : base(message, innerException) { }
 
         public static InteropException CreateWithInnerHResultException(string message)

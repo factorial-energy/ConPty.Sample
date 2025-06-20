@@ -10,7 +10,7 @@ namespace ConPty.Sample.ConsoleApi.Interop
 {
     internal static class ProcessFactory
     {
-        public static Process Start(string applicationName, string commandLine, string workingDirectory, IEnumerable<KeyValuePair<string, string>> environmentVariables, IntPtr attributes, IntPtr hPC)
+        public static Process Start(string applicationName, string commandLine, string workingDirectory, IEnumerable<KeyValuePair<string, string>>? environmentVariables, IntPtr attributes, IntPtr hPC)
         {
             var startupInfo = ConfigureProcessThread(hPC, attributes);
             var processInfo = RunProcess(ref startupInfo, applicationName, commandLine, workingDirectory, environmentVariables);
@@ -68,7 +68,7 @@ namespace ConPty.Sample.ConsoleApi.Interop
             return startupInfo;
         }
 
-        public static IEnumerable<KeyValuePair<string, string>> MergeAdditionalEnvironmentVariables(IEnumerable<KeyValuePair<string, string>> additionalEnvironmentVariables)
+        public static IEnumerable<KeyValuePair<string, string>>? MergeAdditionalEnvironmentVariables(IEnumerable<KeyValuePair<string, string>>? additionalEnvironmentVariables)
         {
             if (additionalEnvironmentVariables == null || !additionalEnvironmentVariables.Any())
             {
@@ -81,7 +81,7 @@ namespace ConPty.Sample.ConsoleApi.Interop
 
             foreach (DictionaryEntry entry in currentEnvVars)
             {
-                environmentVariables[entry.Key.ToString()] = entry.Value.ToString();
+                environmentVariables[entry.Key.ToString()!] = entry.Value!.ToString()!;
             }
 
             foreach (var pair in additionalEnvironmentVariables)
@@ -92,7 +92,7 @@ namespace ConPty.Sample.ConsoleApi.Interop
             return environmentVariables;
         }
 
-        public static string CreateEnvironmentBlock(IEnumerable<KeyValuePair<string, string>> environmentVariables)
+        public static string? CreateEnvironmentBlock(IEnumerable<KeyValuePair<string, string>>? environmentVariables)
         {
             if (environmentVariables == null || !environmentVariables.Any())
             {
@@ -113,14 +113,14 @@ namespace ConPty.Sample.ConsoleApi.Interop
         {
             var envEnum = environmentVariables
                 .Cast<System.Collections.DictionaryEntry>()
-                .Select(entry => new KeyValuePair<string, string>((string)entry.Key, (string)entry.Value));
+                .Select(entry => new KeyValuePair<string, string>((string)entry.Key, (string)entry.Value!));
 
             return RunProcess(ref sInfoEx, applicationName, commandLine, workingDirectory, envEnum);
         }
 
-        private static ProcessInfo RunProcess(ref StartInfoExtended sInfoEx, string applicationName, string commandLine, string workingDirectory, IEnumerable<KeyValuePair<string, string>> environmentVariables)
+        private static ProcessInfo RunProcess(ref StartInfoExtended sInfoEx, string applicationName, string commandLine, string workingDirectory, IEnumerable<KeyValuePair<string, string>>? environmentVariables)
         {
-            string environmentStr = CreateEnvironmentBlock(environmentVariables);
+            string? environmentStr = CreateEnvironmentBlock(environmentVariables);
             IntPtr environmentPtr = IntPtr.Zero;
 
             if (!string.IsNullOrWhiteSpace(environmentStr))
